@@ -2,7 +2,8 @@
 
 ## 1. Overview
 
-This document outlines the technical design for "Echoes of You," a web-based visual novel. The architecture uses a Python (FastAPI) backend, a React frontend, and the **Ribbon API** for conducting AI-powered voice interviews.
+
+This document outlines the technical design for "Echoes of You," a web-based visual novel. The architecture uses a Python (Django) backend with Django REST Framework, a React frontend, and the **Ribbon API** for conducting AI-powered voice interviews.
 
 **Assumptions:**
 - A Python 3.8+ environment is available for the backend.
@@ -15,8 +16,8 @@ This document outlines the technical design for "Echoes of You," a web-based vis
 The application will consist of three main components:
 
 1.  **Front-End:** A client-side application built with React (using Vite). It will handle the UI, display the narrative, and embed the Ribbon interview within an iframe.
-2.  **Back-End:** A lightweight Python server using the FastAPI framework. It will manage the overall game state, use LangChain to generate questions and analyze final transcripts, and interact with both the Ribbon API and our database.
-3.  **Database:** A PostgreSQL database, managed with SQLAlchemy, to persist game sessions and transcripts.
+2.  **Back-End:** A robust Python server using the Django framework and Django REST Framework. It will manage the overall game state, use LangChain to generate questions and analyze final transcripts, and interact with both the Ribbon API and our database.
+3.  **Database:** A PostgreSQL database, managed with Django ORM, to persist game sessions and transcripts.
 
 ## 3. Implementation Steps
 
@@ -26,23 +27,28 @@ The application will consist of three main components:
 2.  Inside the root, create two subdirectories: `frontend` and `backend`.
 3.  **Backend:**
     -   Set up a Python virtual environment.
-    -   Install dependencies: `fastapi`, `uvicorn`, `sqlalchemy`, `asyncpg`, `pydantic`, `langchain`, `langchain-openai` (or other provider), and `httpx` (for making API calls to Ribbon).
-    -   Create a `.env` file to store `LLM_API_KEY`, `RIBBON_API_KEY`, and `DATABASE_URL` (PostgreSQL connection string).
+    -   Install dependencies: `django`, `djangorestframework`, `psycopg2-binary`, `langchain`, `langchain-openai` (or other provider), and `httpx` (for making API calls to Ribbon).
+    -   Create a `.env` file or use Django settings for `LLM_API_KEY`, `RIBBON_API_KEY`, and database credentials.
+    -   Initialize a new Django project and app (e.g., `gamesession`).
 4.  **Frontend:**
     -   Initialize a new React project using Vite (`npm create vite@latest . -- --template react`).
     -   Install `axios` for making API calls to our backend.
 
-### Step 2: Database Schema (SQLAlchemy)
+### Step 2: Database Schema (Django ORM)
 
-1.  In the `backend` directory, configure SQLAlchemy to use a PostgreSQL database. Use environment variables for the connection string (e.g., `DATABASE_URL`).
-2.  Define a `GameSession` model with the following schema (PostgreSQL types):
-    *   `session_id` (String, primary_key=True): A unique identifier for each playthrough.
-    *   `current_state` (String): The player's current stage (e.g., "DAY_1_INTRO", "DAY_1_INTERVIEW_PENDING", "DAY_1_SUMMARY").
-    *   `day_number` (Integer): The current day/round of interviews the player is on.
-    *   `full_transcript_history` (JSONB): A list storing the full transcript objects from all completed Ribbon interviews.
-    *   `created_at` (TIMESTAMP): Timestamp of when the session started.
+1.  In the `backend` directory, configure Django to use a PostgreSQL database. Use environment variables or Django settings for the connection string.
+2.  Define a `GameSession` model in Django with the following fields:
+    *   `session_id` (CharField, primary_key=True): A unique identifier for each playthrough.
+    *   `current_state` (CharField): The player's current stage (e.g., "DAY_1_INTRO", "DAY_1_INTERVIEW_PENDING", "DAY_1_SUMMARY").
+    *   `day_number` (IntegerField): The current day/round of interviews the player is on.
+    *   `full_transcript_history` (JSONField): A list storing the full transcript objects from all completed Ribbon interviews.
+    *   `created_at` (DateTimeField): Timestamp of when the session started.
+3.  Use Django's built-in migration system:
+    -   `python manage.py makemigrations`
+    -   `python manage.py migrate`
 
-### Step 3: Back-End API Design (FastAPI)
+
+### Step 3: Back-End API Design (Django REST Framework)
 
 -   **`POST /api/game/start`**
     -   **Purpose:** Initializes a new game session.
@@ -112,44 +118,39 @@ The application will consist of three main components:
 
 ## 4. Recommended Project Structure and Tech Stack
 
+
 ### Backend (`backend/`)
 - **Tech Stack:**
   - Python 3.8+
-  - FastAPI (ASGI web framework)
-  - SQLAlchemy (ORM)
-  - asyncpg (PostgreSQL driver)
-  - Pydantic (data validation)
+  - Django (web framework)
+  - Django REST Framework (API)
+  - Django ORM
+  - psycopg2-binary (PostgreSQL driver)
   - LangChain (LLM integration)
   - httpx (HTTP client for Ribbon API)
-  - python-dotenv (for loading .env)
 - **Directory Structure:**
   ```
   backend/
-  ├── app/
+  ├── manage.py
+  ├── backend/                # Django project root
   │   ├── __init__.py
-  │   ├── main.py            # FastAPI app entrypoint
-  │   ├── api/               # API routers (game, interview, etc.)
-  │   │   ├── __init__.py
-  │   │   └── game.py
-  │   ├── db/                # Database models and session
-  │   │   ├── __init__.py
-  │   │   ├── models.py      # SQLAlchemy models
-  │   │   └── session.py     # DB session and engine
-  │   ├── core/              # Core logic (LLM, Ribbon, utils)
-  │   │   ├── __init__.py
-  │   │   ├── llm.py         # LangChain integration
-  │   │   ├── ribbon.py      # Ribbon API integration
-  │   │   └── config.py      # Settings loader
-  │   └── schemas/           # Pydantic schemas
-  │       ├── __init__.py
-  │       └── game.py
-  ├── .env                   # Secrets and DB URL
+  │   ├── settings.py         # Django settings
+  │   ├── urls.py             # Project URLs
+  │   └── wsgi.py/asgi.py     # WSGI/ASGI entrypoints
+  ├── gamesession/            # Django app for game logic
+  │   ├── __init__.py
+  │   ├── models.py           # Django models
+  │   ├── serializers.py      # DRF serializers
+  │   ├── views.py            # API views
+  │   ├── urls.py             # App URLs
+  │   └── llm.py/ribbon.py    # LangChain and Ribbon integration
+  ├── .env                    # Secrets and DB URL
   ├── requirements.txt
-  └── alembic/               # (Optional) DB migrations
   ```
 - **Rationale:**
-  - Modular, scalable, and aligns with FastAPI best practices.
-  - Clear separation of API, DB, core logic, and schemas.
+  - Modular, scalable, and aligns with Django best practices.
+  - Built-in admin, migrations, and authentication.
+  - Clear separation of models, serializers, views, and integrations.
   - Easy to extend for new features or endpoints.
 
 ### Frontend (`frontend/`)
@@ -185,6 +186,6 @@ The application will consist of three main components:
 ---
 **Summary:**
 - Use `backend/` and `frontend/` at the root.
-- Backend: Modular FastAPI app with clear separation of API, DB, core logic, and schemas.
+- Backend: Modular Django app with Django REST Framework, built-in migrations, and clear separation of models, serializers, views, and integrations.
 - Frontend: Modern React structure with screens, components, and state management.
 - All secrets and DB URLs in `.env` (not committed).
