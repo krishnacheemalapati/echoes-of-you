@@ -17,7 +17,7 @@ This document outlines the technical design for "Echoes of You," a web-based vis
 
 The application will consist of three main components:
 
-1.  **Front-End:** A client-side application built with React (using Vite). It will handle the UI, display the narrative, and embed the Ribbon interview within an iframe.
+1.  **Front-End:** A client-side application built with React (using Next.js). It will handle the UI, display the narrative, and embed the Ribbon interview within an iframe.
 2.  **Back-End:** A robust Python server using the Django framework and Django REST Framework. It will manage the overall game state, use LangChain to generate questions and analyze final transcripts, and interact with both the Ribbon API and our database.
 3.  **Database:** A PostgreSQL database, managed with Django ORM, to persist game sessions and transcripts.
 
@@ -33,7 +33,7 @@ The application will consist of three main components:
     -   Create a `.env` file or use Django settings for `LLM_API_KEY`, `RIBBON_API_KEY`, and database credentials.
     -   Initialize a new Django project and app (e.g., `gamesession`).
 4.  **Frontend:**
-    -   Initialize a new React project using Vite (`npm create vite@latest . -- --template react`).
+    -   Initialize a new React project using Next.js (`npx create-next-app@latest`).
     -   Install `axios` for making API calls to our backend.
 
 ### Step 2: Database Schema (Django ORM)
@@ -155,30 +155,31 @@ The application will consist of three main components:
   - Clear separation of models, serializers, views, and integrations.
   - Easy to extend for new features or endpoints.
 
+
 ### Frontend (`frontend/`)
 - **Tech Stack:**
-  - React (Vite)
+  - React (Next.js)
+  - Next.js (App Router or Pages Router)
   - Axios (API calls)
   - Zustand or React Context (state management)
-  - React Router (routing, if needed)
   - CSS Modules or styled-components (styling)
 - **Directory Structure:**
   ```
   frontend/
+  ├── app/ or pages/           # Next.js routing (App Router or Pages Router)
   ├── src/
   │   ├── api/                # API utilities
   │   ├── components/         # Reusable UI components
   │   ├── screens/            # Main game screens (Start, Narrative, Interview, Summary, Ending)
   │   ├── state/              # Global state management
   │   ├── utils/              # Utility functions
-  │   ├── App.tsx             # Main app component
-  │   └── main.tsx            # Entry point
   ├── public/
   ├── package.json
-  └── vite.config.ts
+  └── next.config.js
   ```
 - **Rationale:**
-  - Follows modern React best practices.
+  - Uses Next.js for file-based routing, SSR/SSG, and API routes if needed.
+  - Follows modern React and Next.js best practices.
   - Separation of screens and components for clarity.
   - Easy to add new screens or features.
 
@@ -189,5 +190,5 @@ The application will consist of three main components:
 **Summary:**
 - Use `backend/` and `frontend/` at the root.
 - Backend: Modular Django app with Django REST Framework, built-in migrations, and clear separation of models, serializers, views, and integrations.
-- Frontend: Modern React structure with screens, components, and state management.
+- Frontend: Next.js app with screens, components, and state management, following Next.js conventions.
 - All secrets and DB URLs in `.env` (not committed).
