@@ -2,13 +2,22 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
 from .models import GameSession
 from .serializers import GameSessionSerializer
 import uuid
+import os
+
+# Helper: check if API keys exist
+def is_mock_mode():
+    return not (os.environ.get("LLM_API_KEY") and os.environ.get("RIBBON_API_KEY"))
 
 # POST /api/game/start
 class StartGameView(APIView):
     def post(self, request):
+        if is_mock_mode():
+            session_id = "mock-session-1234"
+            return Response({"sessionId": session_id})
         session_id = str(uuid.uuid4())
         game = GameSession.objects.create(session_id=session_id, current_state="DAY_1_INTRO", day_number=1)
         return Response({"sessionId": game.session_id})
@@ -16,6 +25,12 @@ class StartGameView(APIView):
 # GET /api/game/{session_id}
 class GameSessionDetailView(APIView):
     def get(self, request, session_id):
+        if is_mock_mode():
+            return Response({
+                "sessionId": session_id,
+                "currentState": "DAY_1_INTRO",
+                "fullTranscriptHistory": []
+            })
         try:
             game = GameSession.objects.get(session_id=session_id)
         except GameSession.DoesNotExist:
@@ -32,6 +47,8 @@ from . import llm, ribbon
 
 class GenerateInterviewView(APIView):
     def post(self, request, session_id):
+        if is_mock_mode():
+            return Response({"interviewLink": "https://mock.ribbon.ai/interview/mock-interview-1234"})
         try:
             game = GameSession.objects.get(session_id=session_id)
         except GameSession.DoesNotExist:
@@ -61,6 +78,36 @@ class GenerateInterviewView(APIView):
 # POST /api/game/{session_id}/check-interview-status
 class CheckInterviewStatusView(APIView):
     def post(self, request, session_id):
+        if is_mock_mode():
+            # Use a session-based counter to simulate day progression
+            from django.core.cache import cache
+            key = f"mock_day_{session_id}"
+            day = cache.get(key, 1)
+            # Simulate transcript history
+            history = cache.get(f"mock_history_{session_id}", [])
+            transcript = {"questions": [f"Mock Q{day}A?", f"Mock Q{day}B?", f"Mock Q{day}C?"], "answers": [f"A{day}1", f"A{day}2", f"A{day}3"]}
+            history = history + [transcript]
+            cache.set(f"mock_history_{session_id}", history)
+            # Simulate LLM precheck: day 5 or more = yes, day 3 = contradiction, else no
+            if day >= 5:
+                precheck_result = "yes"
+            elif day == 3:
+                precheck_result = "contradiction"
+            else:
+                precheck_result = "no"
+            print(f"[MOCK] LLM precheck for session {session_id}, day {day}: {precheck_result}")
+            if precheck_result == "yes":
+                current_state = "ENDING_PENDING"
+            elif precheck_result == "contradiction":
+                current_state = "ENDING_CONTRADICTION"
+            else:
+                current_state = f"DAY_{day}_SUMMARY"
+            cache.set(key, day)  # Save current day
+            return Response({
+                "sessionId": session_id,
+                "currentState": current_state,
+                "fullTranscriptHistory": history
+            })
         try:
             game = GameSession.objects.get(session_id=session_id)
         except GameSession.DoesNotExist:
@@ -89,6 +136,7 @@ class CheckInterviewStatusView(APIView):
         # LLM pre-check: should we end?
         precheck = llm.get_llm().invoke(llm.PRECHECK_PROMPT.format(history=game.full_transcript_history))
         precheck_result = precheck.content.strip().lower() if hasattr(precheck, 'content') else str(precheck).strip().lower()
+        print(f"[LLM] Precheck for session {session_id}: {precheck_result}")
         if precheck_result == "yes" or game.day_number >= 5:
             # End game
             game.current_state = "ENDING_PENDING"
@@ -106,6 +154,19 @@ class CheckInterviewStatusView(APIView):
 # POST /api/game/{session_id}/next-day
 class NextDayView(APIView):
     def post(self, request, session_id):
+        if is_mock_mode():
+            from django.core.cache import cache
+            key = f"mock_day_{session_id}"
+            day = cache.get(key, 1)
+            day += 1
+            cache.set(key, day)
+            # Keep transcript history
+            history = cache.get(f"mock_history_{session_id}", [])
+            return Response({
+                "sessionId": session_id,
+                "currentState": f"DAY_{day}_INTRO",
+                "fullTranscriptHistory": history
+            })
         try:
             game = GameSession.objects.get(session_id=session_id)
         except GameSession.DoesNotExist:
@@ -123,6 +184,30 @@ class NextDayView(APIView):
 # POST /api/game/{session_id}/end
 class EndGameView(APIView):
     def post(self, request, session_id):
+        if is_mock_mode():
+            from django.core.cache import cache
+            day = cache.get(f"mock_day_{session_id}", 1)
+            history = cache.get(f"mock_history_{session_id}", [])
+            # Simulate ending: day 3 = immune, day 5+ = guilty, else inconclusive
+            if day == 3:
+                ending = "immune"
+                explanation = "The subject contradicted a known truth and is immune to the truth serum. Execution ordered."
+                current_state = "ENDING_IMMUNE_EXECUTION"
+            elif day >= 5:
+                ending = "guilty"
+                explanation = "guilty"
+                current_state = "ENDING_GUILTY"
+            else:
+                ending = "inconclusive"
+                explanation = "inconclusive"
+                current_state = "ENDING_INCONCLUSIVE"
+            print(f"[MOCK] LLM ending for session {session_id}, day {day}: {ending}")
+            return Response({
+                "sessionId": session_id,
+                "currentState": current_state,
+                "endingExplanation": explanation,
+                "fullTranscriptHistory": history
+            })
         try:
             game = GameSession.objects.get(session_id=session_id)
         except GameSession.DoesNotExist:
@@ -130,6 +215,7 @@ class EndGameView(APIView):
         # Call LLM for final judgment
         ending_result = llm.get_llm().invoke(llm.ENDING_PROMPT.format(history=game.full_transcript_history))
         ending = ending_result.content.strip().lower() if hasattr(ending_result, 'content') else str(ending_result).strip().lower()
+        print(f"[LLM] Ending for session {session_id}: {ending}")
         # Determine state
         if "guilty" in ending:
             game.current_state = "ENDING_GUILTY"
