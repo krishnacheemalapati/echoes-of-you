@@ -1,0 +1,41 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+frontend/echoes-of-you/node_modules
+frontend/echoes-of-you/.pnp
+frontend/echoes-of-you/.pnp.*
+frontend/echoes-of-you/.yarn/*
+!frontend/echoes-of-you/.yarn/patches
+!frontend/echoes-of-you/.yarn/plugins
+!frontend/echoes-of-you/.yarn/releases
+!frontend/echoes-of-you/.yarn/versions
+
+# testing
+frontend/echoes-of-you/coverage
+
+# next.js
+frontend/echoes-of-you/.next/
+frontend/echoes-of-you/out/
+
+# production
+frontend/echoes-of-you/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+frontend/echoes-of-you/next-env.d.ts
