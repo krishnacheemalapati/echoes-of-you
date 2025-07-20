@@ -18,6 +18,7 @@ export async function startGame() {
 export async function generateInterview(sessionId: string) {
   const res = await fetch(`${API_BASE}/${sessionId}/generate-interview`, { method: 'POST' });
   if (!res.ok) throw new Error('Failed to generate interview');
+  // Expect { interviewLink, interviewId }
   return await res.json();
 }
 

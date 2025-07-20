@@ -4,7 +4,9 @@ export type GameState = {
   sessionId: string;
   currentState: string;
   fullTranscriptHistory: any[];
+  day_number?: number;
   interviewLink?: string;
+  interviewId?: string;
   endingExplanation?: string;
 };
 

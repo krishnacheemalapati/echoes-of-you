@@ -27,8 +27,8 @@ The application will consist of three main components:
 2.  Inside the root, create two subdirectories: `frontend` and `backend`.
 3.  **Backend:**
     -   Set up a Python virtual environment.
-    -   Install dependencies: `django`, `djangorestframework`, `psycopg2-binary`, `langchain`, `langchain-openai` (or other provider), and `httpx` (for making API calls to Ribbon).
-    -   Create a `.env` file or use Django settings for `LLM_API_KEY`, `RIBBON_API_KEY`, and database credentials.
+    -   Install dependencies: `django`, `djangorestframework`, `psycopg2-binary`, `langchain`, `langchain-google-genai` (for Gemini), and `httpx` (for making API calls to Ribbon).
+    -   Create a `.env` file or use Django settings for `GEMINI_API_KEY`, `RIBBON_API_KEY`, and database credentials.
     -   Initialize a new Django project and app (e.g., `gamesession`).
 4.  **Frontend:**
     -   Initialize a new React project using Next.js (`npx create-next-app@latest`).

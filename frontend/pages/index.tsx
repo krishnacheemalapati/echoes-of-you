@@ -13,6 +13,10 @@ const App: React.FC = () => {
     return <StartScreen />;
   }
 
+  // Show EndingScreen for any ENDING_* state
+  if (gameState.currentState.startsWith('ENDING')) {
+    return <EndingScreen />;
+  }
   switch (gameState.currentState) {
     case 'START':
     case 'DAY_1_INTRO':
@@ -29,10 +33,6 @@ const App: React.FC = () => {
     case 'DAY_4_SUMMARY':
     case 'DAY_5_SUMMARY':
       return <DailySummaryScreen />;
-    case 'ENDING_GUILTY':
-    case 'ENDING_INNOCENT':
-    case 'ENDING_INCONCLUSIVE':
-      return <EndingScreen />;
     default:
       return <StartScreen />;
   }

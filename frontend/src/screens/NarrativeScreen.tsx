@@ -8,7 +8,12 @@ export default function NarrativeScreen() {
   const handleInterview = async () => {
     if (!gameState) return;
     const data = await generateInterview(gameState.sessionId);
-    setGameState({ ...gameState, currentState: 'INTERVIEW_PENDING', interviewLink: data.interviewLink });
+    setGameState({
+      ...gameState,
+      currentState: 'INTERVIEW_PENDING',
+      interviewLink: data.interviewLink,
+      interviewId: data.interviewId
+    });
   };
 
   return (
